@@ -1,0 +1,138 @@
+const { runAnalysisPipeline } = require('../services/analysisPipeline');
+const { getNearbyGaushalas } = require('../utils/haversine');
+const { getSeasonalSuggestion: getSeasonalTip } = require('../utils/seasonHelper');
+const pool = require('../config/db');
+
+const startScan = async (req, res) => {
+  const startTime = Date.now();
+  console.log(`[ScanController] Starting scan for user ${req.user?.id || 'unknown'}`);
+  
+  try {
+    const analysis = await runAnalysisPipeline(req, pool);
+    const elapsed = Date.now() - startTime;
+    console.log(`[ScanController] Scan completed in ${elapsed}ms, scanId: ${analysis.scanId}`);
+
+    res.json({
+      scanId: analysis.scanId,
+      itemId: analysis.itemId,
+      productName: analysis.productName,
+      category: analysis.category,
+      components: analysis.components,
+      safetyResults: analysis.safetyResults,
+      disposition: analysis.disposition,
+    });
+  } catch (error) {
+    const elapsed = Date.now() - startTime;
+    console.error(`[ScanController] Error after ${elapsed}ms:`, error.message);
+    console.error('[ScanController] Stack trace:', error.stack);
+    res.status(500).json({ error: 'Failed to analyse your item', details: error.message });
+  }
+};
+
+const getRecentScans = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 4;
+
+    const [rows] = await pool.query(
+      `SELECT s.id, s.input_type, s.created_at,
+              i.product_name, i.risk_level,
+              (SELECT COUNT(*) FROM suggestions sg 
+               JOIN item_components ic ON sg.item_component_id = ic.id 
+               WHERE ic.item_id = i.id) as suggestion_count
+       FROM scans s
+       LEFT JOIN items i ON s.id = i.scan_id
+       WHERE s.user_id = ?
+       ORDER BY s.created_at DESC
+       LIMIT ?`,
+      [userId, limit]
+    );
+
+    res.json({ scans: rows });
+  } catch (error) {
+    console.error('Get recent scans error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch recent scans' });
+  }
+};
+
+const getScanResults = async (req, res) => {
+  try {
+    const { scanId } = req.params;
+    const userId = req.user.id;
+
+    const [scanRows] = await pool.query(
+      'SELECT * FROM scans WHERE id = ? AND user_id = ?',
+      [scanId, userId]
+    );
+    if (scanRows.length === 0) {
+      return res.status(404).json({ error: 'Scan not found' });
+    }
+
+    const [items] = await pool.query('SELECT * FROM items WHERE scan_id = ?', [scanId]);
+
+    const results = [];
+    for (const item of items) {
+      const [components] = await pool.query(
+        'SELECT * FROM item_components WHERE item_id = ?',
+        [item.id]
+      );
+
+      for (const comp of components) {
+        const [suggestions] = await pool.query(
+          'SELECT * FROM suggestions WHERE item_component_id = ?',
+          [comp.id]
+        );
+
+        for (const sug of suggestions) {
+          const [disclaimers] = await pool.query(
+            'SELECT * FROM disclaimers WHERE suggestion_id = ?',
+            [sug.id]
+          );
+
+          const [ratings] = await pool.query(
+            'SELECT AVG(rating) as avg_rating, COUNT(*) as total_tried FROM community_ratings WHERE suggestion_id = ? AND tried_it = TRUE',
+            [sug.id]
+          );
+
+          results.push({
+            suggestion: {
+              ...sug,
+              steps: typeof sug.steps === 'string' ? JSON.parse(sug.steps) : sug.steps,
+            },
+            component: comp,
+            item,
+            disclaimer: disclaimers[0] || null,
+            communityRating: ratings[0] || { avg_rating: 0, total_tried: 0 },
+          });
+        }
+      }
+    }
+
+    res.json({ scan: scanRows[0], items, results });
+  } catch (error) {
+    console.error('Get scan results error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch results' });
+  }
+};
+
+const getSeasonalSuggestion = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const month = new Date().getMonth() + 1;
+
+    const [profileRows] = await pool.query(
+      'SELECT state FROM user_profiles WHERE user_id = ?',
+      [userId]
+    );
+
+    const state = profileRows[0]?.state;
+    const suggestion = getSeasonalTip(month, state);
+
+    res.json({ suggestion });
+  } catch (error) {
+    console.error('Get seasonal suggestion error:', error.message);
+    res.status(500).json({ error: 'Failed to fetch seasonal suggestion' });
+  }
+};
+
+module.exports = { startScan, getRecentScans, getScanResults, getSeasonalSuggestion };
