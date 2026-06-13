@@ -10,8 +10,7 @@ const analyzeProductImage = async (imageBase64, mimeType) => {
     return null;
   }
 
-  try {
-    const prompt = `Analyse this product image and return a JSON object with:
+  const prompt = `Analyse this product image and return a JSON object with:
 {
   "product_name": "name of the product",
   "brand": "brand name if visible",
@@ -26,6 +25,7 @@ const analyzeProductImage = async (imageBase64, mimeType) => {
 
 Return ONLY the JSON object. No markdown, no explanation.`;
 
+  try {
     const response = await axios.post(
       `${GEMINI_VISION_URL}?key=${GEMINI_API_KEY}`,
       {
@@ -48,13 +48,27 @@ Return ONLY the JSON object. No markdown, no explanation.`;
     );
 
     const text = response.data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) return null;
+    if (!text) throw new Error('No text returned from Gemini');
 
     const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
     return JSON.parse(cleanedText);
   } catch (error) {
-    console.error('Gemini Vision analysis error:', error.message);
-    return null;
+    const status = error.response?.status;
+    console.error(`Gemini Vision analysis error${status ? ` (Status ${status})` : ''}:`, error.message);
+    
+    console.log('[GeminiService] Falling back to Groq Vision API...');
+    try {
+      const { analyzeProductImageFallback } = require('./groqService');
+      const fallbackResult = await analyzeProductImageFallback(imageBase64, mimeType, prompt);
+      if (fallbackResult) {
+        console.log('[GeminiService] Groq Vision fallback succeeded');
+        return fallbackResult;
+      }
+      throw new Error('Groq fallback returned null');
+    } catch (fallbackError) {
+      console.error('[GeminiService] Groq Vision fallback failed:', fallbackError.message);
+      throw new Error('Image analysis failed on both Gemini and Groq. Please check your API limits or try a clearer image.');
+    }
   }
 };
 

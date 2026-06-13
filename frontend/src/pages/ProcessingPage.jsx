@@ -37,7 +37,8 @@ export default function ProcessingPage() {
         setCurrentStep(0);
         setProgress(15);
 
-        const payload = buildScanPayload(scanType, form, profile || {});
+        const photoFile = location.state?.photoFile || null;
+        const payload = buildScanPayload(scanType, form, profile || {}, photoFile);
         const scanResult = await scanApi.analyse(payload);
         const scanId = scanResult.scanId;
 

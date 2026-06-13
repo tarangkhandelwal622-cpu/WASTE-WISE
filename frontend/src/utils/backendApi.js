@@ -25,8 +25,12 @@ export const requestJson = async (path, { method = 'GET', body, auth = true, hea
   };
 
   if (body !== undefined) {
-    requestHeaders['Content-Type'] = requestHeaders['Content-Type'] || 'application/json';
-    init.body = typeof body === 'string' ? body : JSON.stringify(body);
+    if (body instanceof FormData) {
+      init.body = body;
+    } else {
+      requestHeaders['Content-Type'] = requestHeaders['Content-Type'] || 'application/json';
+      init.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, init);
@@ -61,6 +65,7 @@ export const userApi = {
 
 export const scanApi = {
   analyse: (payload) => requestJson('/scan/analyse', { method: 'POST', body: payload }),
+  vision: (payload) => requestJson('/scan/vision', { method: 'POST', body: payload }),
   recent: (limit = 4) => requestJson(`/scan/recent?limit=${limit}`),
   results: (scanId) => requestJson(`/scan/results/${scanId}`),
   seasonal: () => requestJson('/scan/seasonal'),
@@ -89,7 +94,7 @@ export const voiceApi = {
   generate: (payload) => requestJson('/voice/generate', { method: 'POST', body: payload }),
 };
 
-export const buildScanPayload = (scanType, form, profile = {}) => {
+export const buildScanPayload = (scanType, form, profile = {}, photoFile = null) => {
   const base = {
     input_type: scanType,
     location_lat: profile.lat || profile.location_lat || 28.6139,
@@ -97,8 +102,10 @@ export const buildScanPayload = (scanType, form, profile = {}) => {
     raw_input: JSON.stringify({ scanType, form }),
   };
 
+  let specificPayload = {};
+
   if (scanType === 'electronics') {
-    return {
+    specificPayload = {
       ...base,
       product_name: form.brand ? `${form.brand} ${form.category}`.trim() : form.category,
       category: 'electronics',
@@ -110,16 +117,14 @@ export const buildScanPayload = (scanType, form, profile = {}) => {
         issue: form.issue || '',
       },
     };
-  }
-
-  if (scanType === 'food_peels') {
+  } else if (scanType === 'food_peels') {
     const peelSource = [form.itemName, form.category].filter(Boolean).join(', ');
     const peels = peelSource
       .split(/,|\band\b/i)
       .map((item) => item.trim())
       .filter(Boolean);
 
-    return {
+    specificPayload = {
       ...base,
       product_name: peelSource || 'Food scraps',
       category: 'peels',
@@ -127,11 +132,9 @@ export const buildScanPayload = (scanType, form, profile = {}) => {
       quantity: form.quantity || '',
       notes: form.notes || '',
     };
-  }
-
-  if (scanType === 'waste_packaging') {
+  } else if (scanType === 'waste_packaging') {
     const materials = [form.materialType || form.category || form.itemName].filter(Boolean);
-    return {
+    specificPayload = {
       ...base,
       product_name: form.itemName || 'Packaging',
       category: form.materialType || form.category || 'packaging',
@@ -140,23 +143,38 @@ export const buildScanPayload = (scanType, form, profile = {}) => {
       hasResidue: Boolean(form.hasResidue),
       size: form.size || '',
     };
+  } else {
+    const ingredients = (form.ingredients || '')
+      .split(/\n|,|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    specificPayload = {
+      ...base,
+      product_name: form.itemName || form.category || 'Item',
+      category: form.category || 'expired_product',
+      expiry_date: form.expiryDate || null,
+      expiry_type: form.expiryType || 'best_before',
+      ingredients,
+      quantity: form.quantity || '',
+      notes: form.notes || '',
+    };
   }
 
-  const ingredients = (form.ingredients || '')
-    .split(/\n|,|;/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+  if (photoFile) {
+    const formData = new FormData();
+    formData.append('photo', photoFile);
+    Object.entries(specificPayload).forEach(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        formData.append(key, JSON.stringify(value));
+      } else if (value !== null && value !== undefined) {
+        formData.append(key, value);
+      }
+    });
+    return formData;
+  }
 
-  return {
-    ...base,
-    product_name: form.itemName || form.category || 'Item',
-    category: form.category || 'expired_product',
-    expiry_date: form.expiryDate || null,
-    expiry_type: form.expiryType || 'best_before',
-    ingredients,
-    quantity: form.quantity || '',
-    notes: form.notes || '',
-  };
+  return specificPayload;
 };
 
 export const buildContextualAnswers = (profile = {}) => {

@@ -135,4 +135,27 @@ const getSeasonalSuggestion = async (req, res) => {
   }
 };
 
-module.exports = { startScan, getRecentScans, getScanResults, getSeasonalSuggestion };
+const getVisionData = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No image file uploaded' });
+    }
+    const photo_data = req.file.buffer.toString('base64');
+    const photo_mime = req.file.mimetype;
+    console.log('[ScanController] vision endpoint called, analyzing image...');
+    
+    const { analyzeProductImage } = require('../services/geminiService');
+    const visionData = await analyzeProductImage(photo_data, photo_mime);
+    
+    if (!visionData) {
+      return res.status(500).json({ error: 'Failed to extract information from image' });
+    }
+    
+    res.json(visionData);
+  } catch (error) {
+    console.error('[ScanController] vision analysis error:', error.message);
+    res.status(500).json({ error: 'Failed to analyze image', details: error.message });
+  }
+};
+
+module.exports = { startScan, getRecentScans, getScanResults, getSeasonalSuggestion, getVisionData };

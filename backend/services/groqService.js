@@ -79,4 +79,48 @@ Return ONLY the JSON object.`;
   }
 };
 
-module.exports = { chat, animalFeedAnalysis };
+const analyzeProductImageFallback = async (imageBase64, mimeType, prompt) => {
+  if (!GROQ_API_KEY) {
+    console.warn('GROQ_API_KEY not set for vision fallback');
+    return null;
+  }
+
+  try {
+    const response = await axios.post(
+      GROQ_URL,
+      {
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageBase64}` } }
+            ]
+          }
+        ],
+        max_tokens: 1024,
+        temperature: 0.1,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      }
+    );
+
+    const text = response.data.choices?.[0]?.message?.content;
+    if (!text) return null;
+
+    const cleanedText = text.replace(/```json\s*|\s*```/g, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (error) {
+    const errMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+    console.error('Groq Vision fallback error:', errMsg);
+    return null;
+  }
+};
+
+module.exports = { chat, animalFeedAnalysis, analyzeProductImageFallback };

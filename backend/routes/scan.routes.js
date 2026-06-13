@@ -1,9 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
-const { startScan, getRecentScans, getScanResults, getSeasonalSuggestion } = require('../controllers/scan.controller');
+const { startScan, getRecentScans, getScanResults, getSeasonalSuggestion, getVisionData } = require('../controllers/scan.controller');
 
-router.post('/analyse', authMiddleware, startScan);
+const multer = require('multer');
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+});
+
+router.post('/analyse', authMiddleware, upload.single('photo'), startScan);
+router.post('/vision', authMiddleware, upload.single('photo'), getVisionData);
 router.get('/recent', authMiddleware, getRecentScans);
 router.get('/results/:scanId', authMiddleware, getScanResults);
 router.get('/seasonal', authMiddleware, getSeasonalSuggestion);

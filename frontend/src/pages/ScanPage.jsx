@@ -66,11 +66,179 @@ const initialForm = {
   issue: '',
 };
 
+const mapCategoryToOption = (type, data) => {
+  const cat = (data.category || '').toLowerCase();
+  const material = (data.packaging_material || '').toLowerCase();
+  
+  if (type === 'expired_product') {
+    if (cat.includes('dairy') || cat.includes('milk') || cat.includes('curd') || cat.includes('yogurt')) return 'Dairy';
+    if (cat.includes('oil') || cat.includes('fat') || cat.includes('butter')) return 'Oils and fats';
+    if (cat.includes('grain') || cat.includes('flour') || cat.includes('rice') || cat.includes('wheat')) return 'Grains and flour';
+    if (cat.includes('spice') || cat.includes('masala')) return 'Spices';
+    if (cat.includes('cosmetics') || cat.includes('cream') || cat.includes('shampoo') || cat.includes('soap')) return 'Cosmetics';
+    if (cat.includes('beverage') || cat.includes('drink') || cat.includes('juice') || cat.includes('soda')) return 'Beverage';
+    if (cat.includes('packaged') || cat.includes('food') || cat.includes('biscuit') || cat.includes('snack')) return 'Packaged food';
+    return 'Other';
+  }
+  
+  if (type === 'food_peels') {
+    if (cat.includes('banana')) return 'Banana peel';
+    if (cat.includes('potato')) return 'Potato peel';
+    if (cat.includes('mango')) return 'Mango peel';
+    if (cat.includes('apple')) return 'Apple peel';
+    if (cat.includes('watermelon')) return 'Watermelon rind';
+    if (cat.includes('coconut')) return 'Coconut shell';
+    if (cat.includes('peel') || cat.includes('scrap') || cat.includes('leftover')) return 'Mixed scraps';
+    return 'Other';
+  }
+  
+  if (type === 'waste_packaging') {
+    if (material.includes('glass')) return 'Glass';
+    if (material.includes('plastic')) return 'Plastic';
+    if (material.includes('cardboard')) return 'Cardboard';
+    if (material.includes('metal') || material.includes('tin') || material.includes('aluminum')) return 'Metal';
+    if (material.includes('fabric') || material.includes('cloth')) return 'Fabric';
+    if (material.includes('paper')) return 'Paper';
+    return 'Mixed material';
+  }
+  
+  if (type === 'electronics') {
+    if (cat.includes('phone') || cat.includes('mobile')) return 'Mobile phone';
+    if (cat.includes('laptop') || cat.includes('computer')) return 'Laptop';
+    if (cat.includes('tablet') || cat.includes('ipad')) return 'Tablet';
+    if (cat.includes('tv') || cat.includes('monitor') || cat.includes('screen')) return 'TV or monitor';
+    if (cat.includes('appliance') || cat.includes('kitchen') || cat.includes('microwave')) return 'Kitchen appliance';
+    if (cat.includes('cable') || cat.includes('charger') || cat.includes('wire')) return 'Cable or charger';
+    if (cat.includes('audio') || cat.includes('speaker') || cat.includes('headphone')) return 'Audio device';
+    return 'Other';
+  }
+  
+  return '';
+};
+
+const mapConditionToOption = (type, riskIndicators = []) => {
+  const risks = riskIndicators.map(r => r.toLowerCase()).join(' ');
+  
+  if (type === 'food_peels') {
+    if (risks.includes('mould') || risks.includes('mold') || risks.includes('rot')) return 'Mold visible';
+    if (risks.includes('dry') || risks.includes('wilt')) return 'Slightly dry';
+    if (risks.includes('ripe') || risks.includes('soft')) return 'Overripe';
+    return 'Fresh';
+  }
+  
+  if (type === 'waste_packaging') {
+    if (risks.includes('dirty') || risks.includes('residue') || risks.includes('smell')) return 'Has food residue';
+    if (risks.includes('damage') || risks.includes('crack') || risks.includes('break')) return 'Damaged';
+    return 'Clean';
+  }
+  
+  if (type === 'electronics') {
+    if (risks.includes('battery') || risks.includes('swell')) return 'Damaged battery';
+    if (risks.includes('screen') || risks.includes('crack')) return 'Broken screen';
+    if (risks.includes('not working') || risks.includes('dead') || risks.includes('broken')) return 'Not working';
+    return 'Working';
+  }
+  
+  return '';
+};
+
 export default function ScanPage() {
   const [scanType, setScanType] = useState('');
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
+  const [visionLoading, setVisionLoading] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const navigate = useNavigate();
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setVisionLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      
+      const toastId = toast.loading('AI is reading image...');
+      const { scanApi } = await import('../utils/backendApi');
+      const data = await scanApi.vision(formData);
+      
+      toast.success('Product details auto-filled!', { id: toastId });
+      
+      setForm((current) => ({
+        ...current,
+        itemName: data.product_name || (data.brand ? `${data.brand} ${data.product_name || ''}`.trim() : current.itemName),
+        brand: data.brand || current.brand,
+        category: mapCategoryToOption(scanType, data) || current.category,
+        expiryDate: data.expiry_date || current.expiryDate,
+        expiryType: ['best_before', 'use_by', 'expiry_date'].includes(data.expiry_type) ? data.expiry_type : current.expiryType,
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients.join(', ') : data.ingredients || current.ingredients,
+        condition: mapConditionToOption(scanType, data.risk_indicators || []) || current.condition,
+        quantity: data.quantity || current.quantity,
+        notes: data.risk_indicators?.length ? `Detected concerns: ${data.risk_indicators.join(', ')}` : current.notes,
+      }));
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'AI analysis failed.');
+    } finally {
+      setVisionLoading(false);
+    }
+  };
+
+  const handleQuickScan = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+    setVisionLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('photo', file);
+      
+      const toastId = toast.loading('AI is detecting product category...');
+      const { scanApi } = await import('../utils/backendApi');
+      const data = await scanApi.vision(formData);
+      
+      toast.success('Category detected!', { id: toastId });
+      
+      let detectedScanType = 'expired_product';
+      const categoryLower = (data.category || '').toLowerCase();
+      if (categoryLower.includes('peel') || categoryLower === 'peels' || categoryLower.includes('scrap')) {
+        detectedScanType = 'food_peels';
+      } else if (categoryLower.includes('packaging') || ['glass', 'plastic', 'cardboard', 'metal', 'fabric', 'paper', 'mixed material'].includes(data.packaging_material?.toLowerCase() || '')) {
+        detectedScanType = 'waste_packaging';
+      } else if (categoryLower.includes('electronic') || categoryLower.includes('phone') || categoryLower.includes('laptop') || categoryLower.includes('tv') || categoryLower.includes('appliance')) {
+        detectedScanType = 'electronics';
+      }
+
+      setScanType(detectedScanType);
+      
+      setForm({
+        ...initialForm,
+        itemName: data.product_name || (data.brand ? `${data.brand} ${data.product_name || ''}`.trim() : ''),
+        brand: data.brand || '',
+        category: mapCategoryToOption(detectedScanType, data),
+        expiryDate: data.expiry_date || '',
+        expiryType: ['best_before', 'use_by', 'expiry_date'].includes(data.expiry_type) ? data.expiry_type : 'best_before',
+        ingredients: Array.isArray(data.ingredients) ? data.ingredients.join(', ') : data.ingredients || '',
+        condition: mapConditionToOption(detectedScanType, data.risk_indicators || []),
+        quantity: data.quantity || '',
+        notes: data.risk_indicators?.length ? `Detected concerns: ${data.risk_indicators.join(', ')}` : '',
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || 'AI analysis failed.');
+      setScanType('expired_product');
+    } finally {
+      setVisionLoading(false);
+    }
+  };
 
   const selectedType = scanTypes.find((type) => type.id === scanType);
   const Icon = selectedType?.icon || Camera;
@@ -108,6 +276,7 @@ export default function ScanPage() {
           scanType,
           itemName: form.itemName || form.category || 'your item',
           form,
+          photoFile,
         },
       });
       setLoading(false);
@@ -123,6 +292,42 @@ export default function ScanPage() {
             title="What are you scanning?"
             subtitle="Choose the closest type. You can add a photo, describe the item, and refine details before analysis."
           />
+
+          <div className="surface-card p-6 mb-8 bg-gradient-to-br from-[#f3eeff] via-white to-[#eefbf2] border-2 border-dashed border-[#c8b6e2] relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6 transition-all duration-300 hover:border-deep-purple">
+            <div className="flex gap-4 items-center">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-deep-purple text-white shadow-lg shadow-purple-200">
+                <Camera size={27} />
+              </div>
+              <div>
+                <h3 className="text-deep-purple font-bold">Quick AI Image Scan</h3>
+                <p className="text-sm mt-1 leading-relaxed">
+                  Upload or capture a photo first. AI will auto-detect the type and fill details for you!
+                </p>
+              </div>
+            </div>
+            
+            <label className="btn btn-primary cursor-pointer">
+              {visionLoading ? (
+                <>
+                  <div className="spinner spinner-sm mr-2" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Upload size={18} />
+                  Scan / Upload Photo
+                </>
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                capture="environment" 
+                className="hidden" 
+                disabled={visionLoading}
+                onChange={handleQuickScan} 
+              />
+            </label>
+          </div>
 
           <div className="grid gap-5 md:grid-cols-2">
             {scanTypes.map(({ id, title, text, icon: TypeIcon }) => (
@@ -164,18 +369,40 @@ export default function ScanPage() {
         />
 
         <form className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]" onSubmit={handleSubmit}>
-          <Card className="h-fit">
-            <div className="scan-frame flex flex-col items-center justify-center p-6 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-deep-purple shadow-card">
-                <Upload size={29} />
-              </div>
-              <h3 className="mt-5">Add a photo</h3>
-              <p className="mt-2 max-w-xs text-sm leading-6">
-                A clear photo helps separate packaging, edible parts, peels, labels, and damaged components.
-              </p>
-              <Button variant="secondary" className="mt-5">
-                Choose photo
-              </Button>
+          <Card className="h-fit relative">
+            <div className="scan-frame flex flex-col items-center justify-center p-6 text-center relative overflow-hidden min-h-[220px]">
+              {photoPreview ? (
+                <img src={photoPreview} alt="Preview" className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
+              ) : (
+                <>
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-deep-purple shadow-card">
+                    <Upload size={29} />
+                  </div>
+                  <h3 className="mt-5">Add a photo</h3>
+                  <p className="mt-2 max-w-xs text-sm leading-6">
+                    A clear photo helps separate packaging, edible parts, peels, labels, and damaged components.
+                  </p>
+                </>
+              )}
+              
+              {visionLoading && (
+                <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
+                  <div className="spinner spinner-lg mb-4" />
+                  <p className="font-bold text-deep-purple">AI is reading product details...</p>
+                </div>
+              )}
+
+              <label className={`mt-5 cursor-pointer rounded-xl px-5 py-2.5 font-bold transition-all ${photoPreview ? 'bg-white/90 text-deep-purple z-10 backdrop-blur-sm hover:bg-white' : 'bg-[#E8E0F0] text-deep-purple hover:bg-[#DBCDE8]'}`}>
+                {photoPreview ? 'Change photo' : 'Choose photo'}
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment" 
+                  className="hidden" 
+                  disabled={visionLoading}
+                  onChange={handlePhotoUpload} 
+                />
+              </label>
             </div>
 
             <div className="mt-5 rounded-2xl border border-primary-green bg-light-green p-4">

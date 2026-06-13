@@ -10,6 +10,13 @@ const runAnalysisPipeline = async (req, pool) => {
   const pipelineStartTime = Date.now();
   console.log(`[AnalysisPipeline] Starting analysis for user ${req.user?.id || req.body.user_id}`);
 
+  const safeParse = (val) => {
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch (e) { return val; }
+    }
+    return val;
+  };
+
   const {
     user_id,
     input_type,
@@ -19,19 +26,21 @@ const runAnalysisPipeline = async (req, pool) => {
     category,
     expiry_date,
     expiry_type,
-    ingredients,
     quantity,
-    photo_data,
-    photo_mime,
     raw_input,
-    peels,
-    packaging_materials,
-    device_info,
   } = req.body;
+  
+  const ingredients = safeParse(req.body.ingredients);
+  const peels = safeParse(req.body.peels);
+  const packaging_materials = safeParse(req.body.packaging_materials);
+  const device_info = safeParse(req.body.device_info);
+
+  const photo_data = req.file ? req.file.buffer.toString('base64') : req.body.photo_data;
+  const photo_mime = req.file ? req.file.mimetype : req.body.photo_mime;
   const effectiveUserId = req.user?.id ?? user_id;
 
   // Set overall pipeline timeout - must complete within 12 seconds
-  const pipelineTimeout = 12000;
+  const pipelineTimeout = 30000;
   let pipelineTimedOut = false;
   const timeoutTimer = setTimeout(() => {
     pipelineTimedOut = true;
@@ -51,20 +60,30 @@ const runAnalysisPipeline = async (req, pool) => {
 
     let visionData = null;
     if (photo_data && photo_mime && !pipelineTimedOut) {
+      console.log(`[AnalysisPipeline] Image file received (MIME: ${photo_mime})`);
       try {
-        // Timeout for vision analysis - 4 seconds max
+        console.log('[AnalysisPipeline] Initiating Gemini Vision API call...');
+        // Timeout for vision analysis - 15 seconds to allow Gemini + Groq fallback
         const visionTimeout = new Promise((resolve) => {
           setTimeout(() => {
             console.log('[AnalysisPipeline] Vision analysis timeout');
             resolve(null);
-          }, 4000);
+          }, 15000);
         });
         visionData = await Promise.race([
           analyzeProductImage(photo_data, photo_mime),
           visionTimeout
         ]);
+        
+        if (visionData) {
+          console.log('[AnalysisPipeline] Gemini Vision API response returned successfully:', JSON.stringify(visionData));
+        } else {
+          console.log('[AnalysisPipeline] Gemini Vision API returned null or timed out');
+          throw new Error('Image analysis failed: Could not process the uploaded photo. Please try a clearer image.');
+        }
       } catch (error) {
-        console.error('Vision analysis error:', error.message);
+        console.error('[AnalysisPipeline] Gemini Vision analysis error:', error.message);
+        throw new Error(`Image analysis failed: ${error.message}`);
       }
     }
 

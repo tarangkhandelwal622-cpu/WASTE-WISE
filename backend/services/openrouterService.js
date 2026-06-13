@@ -55,6 +55,9 @@ This item has expired/is waste. Decompose it into ALL its physical components.
 Think carefully — a rotten apple has: flesh, peel, seeds, core.
 An expired milk carton has: cardboard body, plastic lining, foil layer, cap.
 A broken phone has: screen, battery, camera module, speakers, frame, cables.
+
+CRITICAL INSTRUCTION: Do not suggest uses that require chemically separating ingredients. Only suggest what a normal household person can physically do with this product as-is. Think in terms of the minimum physical unit — for example an expired bottle of coconut oil is one physical unit that can be used as wood polish, leather conditioner, or hair oil. An expired lemon can be split into juice, peel, and seed — these are natural physical separations. A bottle of shampoo cannot be separated into its chemical components. Always suggest at least one primary whole-product use and at least two secondary uses based on natural physical parts if applicable.
+
 Return a JSON array of components:
 [{
   "component_name": "name",
