@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import './App.css';
 
 // Pages
@@ -72,6 +74,8 @@ function App() {
           }
         />
       </Routes>
+      <Analytics />
+      <SpeedInsights />
     </Router>
   );
 }
