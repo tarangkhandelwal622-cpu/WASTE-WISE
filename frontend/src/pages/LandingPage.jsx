@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '../store/authStore';
 import {
   ArrowRight,
   BadgeCheck,
@@ -59,13 +60,18 @@ const wisdomCards = [
 export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
+    if (user) {
+      navigate('/home', { replace: true });
+      return;
+    }
     const target = location.state?.scrollTo;
     if (target) {
       window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' }), 80);
     }
-  }, [location.state]);
+  }, [location.state, user, navigate]);
 
   return (
     <div className="min-h-screen bg-white">

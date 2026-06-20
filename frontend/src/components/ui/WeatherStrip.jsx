@@ -17,39 +17,66 @@ const seasonForMonth = (month) => {
   return 'Mild season';
 };
 
-export default function WeatherStrip({ city = 'Delhi', lat = 28.7041, lng = 77.1025 }) {
+export default function WeatherStrip({ city: defaultCity = 'Delhi', lat: defaultLat = 28.7041, lng: defaultLng = 77.1025 }) {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [locationName, setLocationName] = useState(defaultCity);
 
   useEffect(() => {
     let active = true;
 
-    const fetchWeather = async () => {
-      if (!lat || !lng) {
-        setLoading(false);
-        return;
-      }
-
+    const fetchWeatherAndLocation = async (latitude, longitude) => {
       try {
-        const response = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,uv_index,weather_code`
-        );
-        const data = await response.json();
-        if (active) setWeather(data.current);
-      } catch {
-        if (active) setWeather(null);
+        setLoading(true);
+        const [weatherRes, geoRes] = await Promise.allSettled([
+          fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,uv_index,weather_code`),
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+        ]);
+
+        if (active && weatherRes.status === 'fulfilled') {
+          const data = await weatherRes.value.json();
+          setWeather(data.current);
+        }
+
+        if (active && geoRes.status === 'fulfilled') {
+          const geoData = await geoRes.value.json();
+          const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.state_district || defaultCity;
+          setLocationName(city);
+        }
+      } catch (err) {
+        // Fallback or ignore
       } finally {
         if (active) setLoading(false);
       }
     };
 
-    fetchWeather();
-    const interval = window.setInterval(fetchWeather, 30 * 60 * 1000);
+    const getLocation = () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (active) {
+              fetchWeatherAndLocation(position.coords.latitude, position.coords.longitude);
+            }
+          },
+          (error) => {
+            console.error('Geolocation error:', error);
+            if (active) fetchWeatherAndLocation(defaultLat, defaultLng);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        fetchWeatherAndLocation(defaultLat, defaultLng);
+      }
+    };
+
+    getLocation();
+
+    const interval = window.setInterval(getLocation, 30 * 60 * 1000);
     return () => {
       active = false;
       window.clearInterval(interval);
     };
-  }, [lat, lng]);
+  }, [defaultLat, defaultLng, defaultCity]);
 
   const condition = conditionForCode(weather?.weather_code ?? 0);
   const Icon = condition.icon;
@@ -62,7 +89,7 @@ export default function WeatherStrip({ city = 'Delhi', lat = 28.7041, lng = 77.1
           <MapPin size={20} />
         </div>
         <div>
-          <p className="font-bold text-text-primary">{city}</p>
+          <p className="font-bold text-text-primary">{locationName}</p>
           <p className="text-xs text-text-muted">Suggestions adapt to local conditions</p>
         </div>
       </div>

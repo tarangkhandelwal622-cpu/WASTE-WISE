@@ -63,8 +63,8 @@ export default function Navbar() {
   return (
     <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-border-light bg-white/92 backdrop-blur-xl">
       <div className="page-shell flex h-full items-center justify-between">
-        <Link to={user ? '/home' : '/'} className="text-2xl font-extrabold tracking-tight gradient-logo">
-          WasteWise
+        <Link to={user ? '/home' : '/'}>
+          <img src="/logo.png" alt="WasteWise" className="h-10 w-auto" />
         </Link>
 
         <div className="hidden items-center gap-7 md:flex">
