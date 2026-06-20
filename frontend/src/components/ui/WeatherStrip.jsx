@@ -43,7 +43,7 @@ export default function WeatherStrip({ city: defaultCity = 'Delhi', lat: default
           const city = geoData.address?.city || geoData.address?.town || geoData.address?.village || geoData.address?.state_district || defaultCity;
           setLocationName(city);
         }
-      } catch (err) {
+      } catch {
         // Fallback or ignore
       } finally {
         if (active) setLoading(false);

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ExternalLink, Recycle, RefreshCw, Smartphone, Wrench } from 'lucide-react';

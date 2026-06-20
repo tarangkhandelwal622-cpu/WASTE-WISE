@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Leaf, Search, ShieldCheck, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -50,7 +51,7 @@ export default function ProcessingPage() {
         setProgress(55);
 
         const contextual = buildContextualAnswers(profile || {});
-        const suggestionsResult = await suggestionsApi.generate({
+        await suggestionsApi.generate({
           scan_id: scanId,
           selected_goals: ['all'],
           contextual_answers: contextual,

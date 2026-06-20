@@ -102,7 +102,7 @@ export const buildScanPayload = (scanType, form, profile = {}, photoFile = null)
     raw_input: JSON.stringify({ scanType, form }),
   };
 
-  let specificPayload = {};
+  let specificPayload;
 
   if (scanType === 'electronics') {
     specificPayload = {

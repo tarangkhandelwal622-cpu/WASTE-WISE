@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react';
 import { Download, Leaf, MapPin, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';

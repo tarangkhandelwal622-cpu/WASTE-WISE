@@ -53,7 +53,7 @@ export default function HomePage() {
       });
       setLoggedItems((current) => current + 1);
       toast.success(`${item} added to today's log`);
-    } catch (error) {
+    } catch {
       // Still update UI even if API fails
       setLoggedItems((current) => current + 1);
       toast.success(`${item} added to today's log`);
