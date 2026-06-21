@@ -1,6 +1,4 @@
-const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-const defaultUrl = isDev ? 'http://localhost:5000/api' : `http://${window.location.hostname}:5000/api`;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || defaultUrl;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 const safeJsonParse = (value) => {
   if (!value) return null;

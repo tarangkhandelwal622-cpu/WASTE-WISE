@@ -37,7 +37,7 @@ const runAnalysisPipeline = async (req, pool) => {
 
   const photo_data = req.file ? req.file.buffer.toString('base64') : req.body.photo_data;
   const photo_mime = req.file ? req.file.mimetype : req.body.photo_mime;
-  const effectiveUserId = req.user?.id ?? user_id;
+  const effectiveUserId = (req.user?.id && req.user.id !== 'guest') ? req.user.id : null;
 
   // Set overall pipeline timeout - must complete within 12 seconds
   const pipelineTimeout = 30000;
