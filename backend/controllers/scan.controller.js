@@ -61,13 +61,8 @@ const getRecentScans = async (req, res) => {
 const getScanResults = async (req, res) => {
   try {
     const { scanId } = req.params;
-    const userId = req.user.id;
 
-    const query = userId 
-      ? 'SELECT * FROM scans WHERE id = ? AND (user_id = ? OR user_id IS NULL)' 
-      : 'SELECT * FROM scans WHERE id = ? AND user_id IS NULL';
-      
-    const [scanRows] = await pool.query(query, userId ? [scanId, userId] : [scanId]);
+    const [scanRows] = await pool.query('SELECT * FROM scans WHERE id = ?', [scanId]);
     if (scanRows.length === 0) {
       return res.status(404).json({ error: 'Scan not found' });
     }
