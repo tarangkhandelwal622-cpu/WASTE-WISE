@@ -61,17 +61,15 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const primaryCta = user ? 'Start a scan' : 'Start for free';
+  const primaryTarget = user ? '/scan' : '/signup';
 
   useEffect(() => {
-    if (user) {
-      navigate('/home', { replace: true });
-      return;
-    }
     const target = location.state?.scrollTo;
     if (target) {
       window.setTimeout(() => document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' }), 80);
     }
-  }, [location.state, user, navigate]);
+  }, [location.state]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -93,8 +91,8 @@ export default function LandingPage() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button variant="primary" size="lg" onClick={() => navigate('/signup')}>
-                Start for free <ArrowRight size={18} />
+              <Button variant="primary" size="lg" onClick={() => navigate(primaryTarget)}>
+                {primaryCta} <ArrowRight size={18} />
               </Button>
               <Button
                 variant="secondary"
@@ -256,8 +254,8 @@ export default function LandingPage() {
           <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-white/86">
             Join Indian households making zero go to waste with safer, smarter decisions.
           </p>
-          <Button variant="white" size="lg" className="mt-8" onClick={() => navigate('/signup')}>
-            Create your free account
+          <Button variant="white" size="lg" className="mt-8" onClick={() => navigate(primaryTarget)}>
+            {user ? 'Scan an item' : 'Create your free account'}
           </Button>
         </div>
       </section>
@@ -277,7 +275,7 @@ export default function LandingPage() {
               <button type="button" className="w-fit hover:text-white" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
                 How it works
               </button>
-              <button type="button" className="w-fit hover:text-white" onClick={() => navigate('/signup')}>Get started</button>
+              <button type="button" className="w-fit hover:text-white" onClick={() => navigate(primaryTarget)}>Get started</button>
             </div>
           </div>
           <div>

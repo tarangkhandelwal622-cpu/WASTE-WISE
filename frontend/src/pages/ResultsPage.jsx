@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowUpDown, ExternalLink, Star, WandSparkles } from 'lucide-react';
+import toast from 'react-hot-toast';
 import AppLayout from '../components/AppLayout';
 import { Badge, Card, LoadingSpinner, PageHeader, WeatherStrip } from '../components/ui';
 import { scanApi, normalizeScanResults } from '../utils/backendApi';
@@ -30,14 +31,22 @@ export default function ResultsPage() {
         }
       } catch (err) {
         console.error('Failed to fetch results:', err);
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          const scanMissing = err.status === 404 || /scan not found/i.test(err.message || '');
+          if (scanMissing) {
+            toast.error('That scan is no longer available. Starting fresh.');
+            navigate('/', { replace: true });
+            return;
+          }
+          setError(err.message);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
     if (scanId) fetchResults();
     return () => { cancelled = true; };
-  }, [scanId]);
+  }, [scanId, navigate]);
 
   const filteredComponents = useMemo(() => {
     if (!data?.components) return [];

@@ -62,8 +62,8 @@ function App() {
       />
       <GuestHandler>
         <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
 
@@ -78,20 +78,7 @@ function App() {
           <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-          <Route
-            path="*"
-            element={
-              <div className="app-main flex items-center justify-center px-6 text-center">
-                <div>
-                  <p className="badge badge-purple mx-auto mb-4">Page not found</p>
-                  <h1 className="mb-4">This path has nothing useful yet.</h1>
-                  <p className="mx-auto max-w-md">
-                    Head back to WasteWise and keep turning household waste into value.
-                  </p>
-                </div>
-              </div>
-            }
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </GuestHandler>
       <Analytics />

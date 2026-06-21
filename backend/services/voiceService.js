@@ -1,6 +1,4 @@
 const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
@@ -16,41 +14,23 @@ const voiceMap = {
   gu: { voiceId: 'EXAVITQu4vr4xnSDxMaL', name: 'Sarah' },
 };
 
-const getVoiceConfig = (language) => {
-  return voiceMap[language] || voiceMap['en'];
-};
+const getVoiceConfig = (language) => voiceMap[language] || voiceMap.en;
 
-const createSilentWavBase64 = (durationSeconds = 1) => {
-  const sampleRate = 8000;
-  const numChannels = 1;
-  const bitsPerSample = 16;
-  const numSamples = sampleRate * durationSeconds;
-  const dataSize = numSamples * numChannels * (bitsPerSample / 8);
-  const buffer = Buffer.alloc(44 + dataSize);
-
-  buffer.write('RIFF', 0);
-  buffer.writeUInt32LE(36 + dataSize, 4);
-  buffer.write('WAVE', 8);
-  buffer.write('fmt ', 12);
-  buffer.writeUInt32LE(16, 16);
-  buffer.writeUInt16LE(1, 20);
-  buffer.writeUInt16LE(numChannels, 22);
-  buffer.writeUInt32LE(sampleRate, 24);
-  buffer.writeUInt32LE(sampleRate * numChannels * (bitsPerSample / 8), 28);
-  buffer.writeUInt16LE(numChannels * (bitsPerSample / 8), 32);
-  buffer.writeUInt16LE(bitsPerSample, 34);
-  buffer.write('data', 36);
-  buffer.writeUInt32LE(dataSize, 40);
-
-  return buffer.toString('base64');
-};
+const browserFallback = (language, reason) => ({
+  audio: null,
+  voiceName: 'Browser voice',
+  language,
+  fallback: true,
+  mimeType: null,
+  reason,
+});
 
 const generateSpeech = async (text, language = 'en') => {
   const voiceConfig = getVoiceConfig(language);
 
   if (!ELEVENLABS_API_KEY) {
-    console.warn('ELEVENLABS_API_KEY not set — returning fallback audio');
-    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true, mimeType: 'audio/wav' };
+    console.warn('ELEVENLABS_API_KEY not set - browser speech fallback requested');
+    return browserFallback(language, 'missing_elevenlabs_key');
   }
 
   try {
@@ -75,16 +55,28 @@ const generateSpeech = async (text, language = 'en') => {
     );
 
     const audioBase64 = Buffer.from(response.data).toString('base64');
-    return { audio: audioBase64, voiceName: voiceConfig.name, language, mimeType: 'audio/mpeg' };
+    return {
+      audio: audioBase64,
+      voiceName: voiceConfig.name,
+      language,
+      fallback: false,
+      mimeType: 'audio/mpeg',
+    };
   } catch (error) {
     console.error('ElevenLabs TTS error:', error.message);
-    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true, mimeType: 'audio/wav' };
+    return browserFallback(language, 'elevenlabs_failed');
   }
+};
+
+const stepText = (step, index) => {
+  if (typeof step === 'string') return `Step ${index + 1}: ${step}`;
+  if (!step || typeof step !== 'object') return `Step ${index + 1}`;
+  return `Step ${index + 1}: ${step.instruction || step.text || step.description || step.title || ''}`.trim();
 };
 
 const formatSuggestionForVoice = (suggestion, disclaimer) => {
   const steps = Array.isArray(suggestion.steps)
-    ? suggestion.steps.map((s, i) => `Step ${i + 1}: ${typeof s === 'string' ? s : s.instruction || s.title}`).join('. ')
+    ? suggestion.steps.map(stepText).filter(Boolean).join('. ')
     : suggestion.steps;
 
   let text = `${suggestion.title}. `;

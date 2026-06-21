@@ -1,10 +1,35 @@
-import { useMemo, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ExternalLink, Pause, Play, Share2, ShieldAlert, Star, Volume2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppLayout from '../components/AppLayout';
 import { Badge, Button, Card, Modal, ProgressBar } from '../components/ui';
 import { communityApi, voiceApi } from '../utils/backendApi';
+
+const buildVoiceText = (suggestion) => {
+  const steps = (suggestion.steps || [])
+    .map((step, index) => {
+      const text = typeof step === 'string'
+        ? step
+        : step?.text || step?.instruction || step?.description || step?.title;
+      return text ? `Step ${index + 1}. ${text}` : null;
+    })
+    .filter(Boolean)
+    .join(' ');
+
+  const safety = [
+    suggestion.disclaimer?.who,
+    suggestion.disclaimer?.stop,
+    suggestion.disclaimer?.notes,
+  ].filter(Boolean).join(' ');
+
+  return [
+    suggestion.title,
+    suggestion.personalisation,
+    steps,
+    safety ? `Safety note. ${safety}` : '',
+  ].filter(Boolean).join('. ');
+};
 
 export default function SuggestionPage() {
   const [safetyOpen, setSafetyOpen] = useState(false);
@@ -15,8 +40,9 @@ export default function SuggestionPage() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const [audioUrl, setAudioUrl] = useState(null);
   const [voiceLoading, setVoiceLoading] = useState(false);
+  const [voiceMode, setVoiceMode] = useState(null);
   const audioRef = useRef(null);
-  
+
   const { suggestionId, scanId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +74,14 @@ export default function SuggestionPage() {
   const itemName = location.state?.scan?.input_type || 'your item';
   const shareText = `I turned my ${itemName} into ${suggestion.title} using WasteWise. Try it: wastewise.in`;
   const shareUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+  const voiceText = useMemo(() => buildVoiceText(suggestion), [suggestion]);
+
+  useEffect(() => () => {
+    audioRef.current?.pause();
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
   const handleSubmitRating = async () => {
     setSubmittingRating(true);
@@ -69,29 +103,85 @@ export default function SuggestionPage() {
     }
   };
 
+  const playBrowserSpeech = (text) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window) || !window.SpeechSynthesisUtterance) {
+      toast.error('Voice playback is not supported in this browser');
+      return false;
+    }
+
+    audioRef.current?.pause();
+    window.speechSynthesis.cancel();
+
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    utterance.rate = 1;
+    utterance.onend = () => {
+      setPlaying(false);
+      setVoiceMode(null);
+    };
+    utterance.onerror = (event) => {
+      setPlaying(false);
+      setVoiceMode(null);
+      if (!['canceled', 'interrupted'].includes(event.error)) {
+        toast.error('Voice playback failed');
+      }
+    };
+
+    setVoiceMode('browser');
+    setPlaying(true);
+    window.speechSynthesis.speak(utterance);
+    return true;
+  };
+
   const handlePlayToggle = async () => {
     if (playing) {
-      audioRef.current?.pause();
+      if (voiceMode === 'browser' && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      } else {
+        audioRef.current?.pause();
+      }
       setPlaying(false);
+      setVoiceMode(null);
     } else {
-      if (!audioUrl) {
+      if (audioUrl && audioRef.current) {
+        try {
+          setVoiceMode('audio');
+          await audioRef.current.play();
+          setPlaying(true);
+        } catch (err) {
+          console.error('Audio playback error:', err);
+          playBrowserSpeech(voiceText);
+        }
+      } else {
         setVoiceLoading(true);
         try {
           const res = await voiceApi.generate({ suggestion_id: suggestion.id, language: 'en' });
+          const fallbackText = res?.text || voiceText;
+
+          if (res?.fallback || !res?.audio) {
+            playBrowserSpeech(fallbackText);
+            return;
+          }
+
           const url = `data:${res.mimeType || 'audio/mpeg'};base64,${res.audio}`;
           setAudioUrl(url);
-          setTimeout(() => {
-            audioRef.current?.play();
+
+          if (audioRef.current) {
+            audioRef.current.src = url;
+            setVoiceMode('audio');
+            await audioRef.current.play();
             setPlaying(true);
-          }, 100);
+          } else {
+            playBrowserSpeech(fallbackText);
+          }
         } catch (err) {
-          toast.error('Failed to generate voice');
+          console.error('Voice generation error:', err);
+          if (!playBrowserSpeech(voiceText)) {
+            toast.error('Failed to generate voice');
+          }
         } finally {
           setVoiceLoading(false);
         }
-      } else {
-        audioRef.current?.play();
-        setPlaying(true);
       }
     }
   };
@@ -252,7 +342,22 @@ export default function SuggestionPage() {
         </div>
       </div>
 
-      <audio ref={audioRef} src={audioUrl || ''} onEnded={() => setPlaying(false)} className="hidden" />
+      <audio
+        ref={audioRef}
+        src={audioUrl || ''}
+        onEnded={() => {
+          setPlaying(false);
+          setVoiceMode(null);
+        }}
+        onError={() => {
+          if (voiceMode === 'audio') {
+            setPlaying(false);
+            setVoiceMode(null);
+            playBrowserSpeech(voiceText);
+          }
+        }}
+        className="hidden"
+      />
 
       <Modal isOpen={ratingOpen} onClose={() => setRatingOpen(false)} title="Rate this suggestion" size="md">
         <div className="space-y-5">

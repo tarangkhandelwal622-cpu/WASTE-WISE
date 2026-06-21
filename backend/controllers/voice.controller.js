@@ -19,7 +19,7 @@ const generateVoice = async (req, res) => {
     }
 
     const suggestion = sugRows[0];
-    const steps = typeof suggestion.steps === 'string' ? JSON.parse(suggestion.steps) : suggestion.steps;
+    const steps = typeof suggestion.steps === 'string' ? JSON.parse(suggestion.steps || '[]') : suggestion.steps;
 
     const [disclaimerRows] = await pool.query(
       'SELECT * FROM disclaimers WHERE suggestion_id = ?',
@@ -43,6 +43,9 @@ const generateVoice = async (req, res) => {
       voiceName: result.voiceName,
       language: result.language,
       mimeType: result.mimeType,
+      fallback: Boolean(result.fallback),
+      reason: result.reason || null,
+      text: voiceText,
     });
   } catch (error) {
     console.error('Voice generation error:', error.message);
