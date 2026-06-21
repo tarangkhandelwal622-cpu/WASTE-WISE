@@ -42,6 +42,7 @@ const generateVoice = async (req, res) => {
       audio: result.audio,
       voiceName: result.voiceName,
       language: result.language,
+      mimeType: result.mimeType,
     });
   } catch (error) {
     console.error('Voice generation error:', error.message);

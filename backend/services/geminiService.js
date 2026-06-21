@@ -10,20 +10,21 @@ const analyzeProductImage = async (imageBase64, mimeType) => {
     return null;
   }
 
-  const prompt = `Analyse this product image and return a JSON object with:
+  const prompt = `You are an expert computer vision model. Analyse this product image in high detail and extract the following information. Be as precise as possible. Read all visible text.
+Return a JSON object strictly matching this schema:
 {
-  "product_name": "name of the product",
-  "brand": "brand name if visible",
-  "category": "category from: dairy/oils/grains/fruits_veg/spices/cosmetics/beverages/packaged_food/household/electronics/packaging/peels",
-  "ingredients": ["list", "of", "ingredients"],
-  "expiry_date": "date if visible in YYYY-MM-DD format or null",
-  "expiry_type": "best_before or use_by or expiry_date or unknown",
-  "quantity": "quantity and unit if visible",
-  "risk_indicators": ["any visible mould", "discolouration", "damage"],
-  "packaging_material": "if packaging scan: glass/plastic/cardboard/metal/fabric/mixed"
+  "product_name": "Exact name of the product or item",
+  "brand": "Brand name if visible, else null",
+  "category": "Choose the best fit: dairy/oils/grains/fruits_veg/spices/cosmetics/beverages/packaged_food/household/electronics/packaging/peels/unknown",
+  "ingredients": ["list", "of", "ingredients", "exactly", "as", "written", "on", "label"],
+  "expiry_date": "Identify any dates. Return the expiry date in YYYY-MM-DD format, or null if not found.",
+  "expiry_type": "Classify the date as: best_before, use_by, expiry_date, or unknown",
+  "quantity": "Extract net weight, volume, or count (e.g. '500g', '1L', '2 pieces')",
+  "risk_indicators": ["List any visible mould", "discolouration", "damage", "spoilage", "rust"],
+  "packaging_material": "Identify main material: glass/plastic/cardboard/metal/fabric/mixed"
 }
 
-Return ONLY the JSON object. No markdown, no explanation.`;
+Return ONLY the JSON object. No markdown, no explanation. Ensure it is valid JSON.`;
 
   try {
     const response = await axios.post(

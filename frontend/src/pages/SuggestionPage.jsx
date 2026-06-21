@@ -78,7 +78,7 @@ export default function SuggestionPage() {
         setVoiceLoading(true);
         try {
           const res = await voiceApi.generate({ suggestion_id: suggestion.id, language: 'en' });
-          const url = `data:audio/wav;base64,${res.audio}`;
+          const url = `data:${res.mimeType || 'audio/mpeg'};base64,${res.audio}`;
           setAudioUrl(url);
           setTimeout(() => {
             audioRef.current?.play();

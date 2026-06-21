@@ -50,7 +50,7 @@ const generateSpeech = async (text, language = 'en') => {
 
   if (!ELEVENLABS_API_KEY) {
     console.warn('ELEVENLABS_API_KEY not set — returning fallback audio');
-    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true };
+    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true, mimeType: 'audio/wav' };
   }
 
   try {
@@ -75,10 +75,10 @@ const generateSpeech = async (text, language = 'en') => {
     );
 
     const audioBase64 = Buffer.from(response.data).toString('base64');
-    return { audio: audioBase64, voiceName: voiceConfig.name, language };
+    return { audio: audioBase64, voiceName: voiceConfig.name, language, mimeType: 'audio/mpeg' };
   } catch (error) {
     console.error('ElevenLabs TTS error:', error.message);
-    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true };
+    return { audio: createSilentWavBase64(1), voiceName: voiceConfig.name, language, fallback: true, mimeType: 'audio/wav' };
   }
 };
 
