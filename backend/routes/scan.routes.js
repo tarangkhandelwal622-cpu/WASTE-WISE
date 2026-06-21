@@ -6,7 +6,7 @@ const { startScan, getRecentScans, getScanResults, getSeasonalSuggestion, getVis
 const multer = require('multer');
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
 });
 
 router.post('/analyse', authMiddleware, upload.single('photo'), startScan);

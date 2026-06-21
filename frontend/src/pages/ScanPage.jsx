@@ -321,7 +321,6 @@ export default function ScanPage() {
               <input 
                 type="file" 
                 accept="image/*" 
-                capture="environment" 
                 className="hidden" 
                 disabled={visionLoading}
                 onChange={handleQuickScan} 
@@ -397,7 +396,6 @@ export default function ScanPage() {
                 <input 
                   type="file" 
                   accept="image/*" 
-                  capture="environment" 
                   className="hidden" 
                   disabled={visionLoading}
                   onChange={handlePhotoUpload} 

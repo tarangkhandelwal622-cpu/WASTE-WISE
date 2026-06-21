@@ -8,6 +8,13 @@ const authMiddleware = (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
+    
+    // Allow guest tokens to bypass JWT verification
+    if (token.startsWith('wastewise_guest_')) {
+      req.user = { id: null, email: 'guest@wastewise.local' };
+      return next();
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = { id: decoded.id, email: decoded.email };
     next();
@@ -24,12 +31,18 @@ const optionalAuth = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = { id: decoded.id, email: decoded.email };
+      if (token.startsWith('wastewise_guest_')) {
+        req.user = { id: null, email: 'guest@wastewise.local' };
+      } else {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = { id: decoded.id, email: decoded.email };
+      }
+    } else {
+      req.user = { id: null, email: 'guest@wastewise.local' };
     }
     next();
   } catch (error) {
-    req.user = null;
+    req.user = { id: null, email: 'guest@wastewise.local' };
     next();
   }
 };

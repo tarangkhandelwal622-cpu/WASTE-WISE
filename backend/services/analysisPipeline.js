@@ -54,7 +54,7 @@ const runAnalysisPipeline = async (req, pool) => {
     const [scanResult] = await pool.query(
       `INSERT INTO scans (user_id, input_type, location_lat, location_lng, weather_temp, weather_humidity, weather_uv, season)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [effectiveUserId, input_type, location_lat, location_lng, weather.temp, weather.humidity, weather.uv, season]
+      [effectiveUserId || null, input_type, location_lat, location_lng, weather.temp, weather.humidity, weather.uv, season]
     );
     const scanId = scanResult.insertId;
 

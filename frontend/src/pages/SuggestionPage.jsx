@@ -1,10 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ChevronRight, ExternalLink, Pause, Play, Share2, ShieldAlert, Star, Volume2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppLayout from '../components/AppLayout';
 import { Badge, Button, Card, Modal, ProgressBar } from '../components/ui';
-import { communityApi } from '../utils/backendApi';
+import { communityApi, voiceApi } from '../utils/backendApi';
 
 export default function SuggestionPage() {
   const [safetyOpen, setSafetyOpen] = useState(false);
@@ -13,6 +13,10 @@ export default function SuggestionPage() {
   const [userRating, setUserRating] = useState(5);
   const [userReview, setUserReview] = useState('');
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [voiceLoading, setVoiceLoading] = useState(false);
+  const audioRef = useRef(null);
+  
   const { suggestionId, scanId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,6 +66,33 @@ export default function SuggestionPage() {
       toast.success('Thanks for rating');
     } finally {
       setSubmittingRating(false);
+    }
+  };
+
+  const handlePlayToggle = async () => {
+    if (playing) {
+      audioRef.current?.pause();
+      setPlaying(false);
+    } else {
+      if (!audioUrl) {
+        setVoiceLoading(true);
+        try {
+          const res = await voiceApi.generate({ suggestion_id: suggestion.id, language: 'en' });
+          const url = `data:audio/wav;base64,${res.audio}`;
+          setAudioUrl(url);
+          setTimeout(() => {
+            audioRef.current?.play();
+            setPlaying(true);
+          }, 100);
+        } catch (err) {
+          toast.error('Failed to generate voice');
+        } finally {
+          setVoiceLoading(false);
+        }
+      } else {
+        audioRef.current?.play();
+        setPlaying(true);
+      }
     }
   };
 
@@ -174,10 +205,11 @@ export default function SuggestionPage() {
                   <button
                     type="button"
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-deep-purple text-white"
-                    onClick={() => setPlaying((current) => !current)}
+                    onClick={handlePlayToggle}
+                    disabled={voiceLoading}
                     aria-label={playing ? 'Pause guidance' : 'Play guidance'}
                   >
-                    {playing ? <Pause size={20} /> : <Play size={20} />}
+                    {voiceLoading ? <div className="spinner spinner-sm" /> : (playing ? <Pause size={20} /> : <Play size={20} />)}
                   </button>
                   <div>
                     <p className="font-bold text-text-primary">{playing ? 'Playing guidance' : 'Ready to listen'}</p>
@@ -191,7 +223,7 @@ export default function SuggestionPage() {
                   ))}
                 </div>
               </div>
-              <Button variant="primary" className="mt-4 w-full" onClick={() => setPlaying((current) => !current)}>
+              <Button variant="primary" className="mt-4 w-full" onClick={handlePlayToggle} loading={voiceLoading}>
                 <Volume2 size={17} /> {playing ? 'Pause' : 'Listen'}
               </Button>
             </Card>
@@ -219,6 +251,8 @@ export default function SuggestionPage() {
           </aside>
         </div>
       </div>
+
+      <audio ref={audioRef} src={audioUrl || ''} onEnded={() => setPlaying(false)} className="hidden" />
 
       <Modal isOpen={ratingOpen} onClose={() => setRatingOpen(false)} title="Rate this suggestion" size="md">
         <div className="space-y-5">
