@@ -17,8 +17,14 @@ export default function ResultsPage() {
   const navigate = useNavigate();
   const { scanId } = useParams();
   const user = useAuthStore((state) => state.user);
+  const hasValidScanId = Boolean(scanId && !['undefined', 'null'].includes(String(scanId).toLowerCase()));
 
   useEffect(() => {
+    if (!hasValidScanId) {
+      navigate('/home', { replace: true });
+      return undefined;
+    }
+
     let cancelled = false;
     const fetchResults = async () => {
       try {
@@ -33,7 +39,7 @@ export default function ResultsPage() {
         if (!cancelled) {
           const scanMissing = err.status === 404 || /scan not found/i.test(err.message || '');
           if (scanMissing) {
-            navigate('/', { replace: true });
+            navigate('/home', { replace: true });
             return;
           }
           setError(err.message);
@@ -42,9 +48,9 @@ export default function ResultsPage() {
         if (!cancelled) setLoading(false);
       }
     };
-    if (scanId) fetchResults();
+    fetchResults();
     return () => { cancelled = true; };
-  }, [scanId, navigate]);
+  }, [scanId, hasValidScanId, navigate]);
 
   const filteredComponents = useMemo(() => {
     if (!data?.components) return [];
@@ -55,6 +61,10 @@ export default function ResultsPage() {
       }))
       .filter((component) => component.suggestions.length);
   }, [activeFilter, data]);
+
+  if (!hasValidScanId) {
+    return null;
+  }
 
   if (loading) {
     return (

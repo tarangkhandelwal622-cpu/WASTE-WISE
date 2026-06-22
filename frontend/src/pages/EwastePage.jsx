@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ExternalLink, Recycle, RefreshCw, Smartphone, Wrench } from 'lucide-react';
@@ -12,8 +11,14 @@ export default function EwastePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const hasValidScanId = Boolean(scanId && !['undefined', 'null'].includes(String(scanId).toLowerCase()));
 
   useEffect(() => {
+    if (!hasValidScanId) {
+      navigate('/home', { replace: true });
+      return undefined;
+    }
+
     let cancelled = false;
     const loadEwasteData = async () => {
       try {
@@ -30,14 +35,13 @@ export default function EwastePage() {
         if (!cancelled) setLoading(false);
       }
     };
-    if (scanId) {
-      loadEwasteData();
-    } else {
-      setLoading(false);
-      setError('No scan ID provided');
-    }
+    loadEwasteData();
     return () => { cancelled = true; };
-  }, [scanId]);
+  }, [scanId, hasValidScanId, navigate]);
+
+  if (!hasValidScanId) {
+    return null;
+  }
 
   if (loading) {
     return (

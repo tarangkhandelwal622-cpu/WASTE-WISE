@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Analytics } from '@vercel/analytics/react';
@@ -24,19 +23,11 @@ import ProfilePage from './pages/ProfilePage';
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
 
-function GuestHandler({ children }) {
+function StartPage() {
   const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
-  const setToken = useAuthStore((state) => state.setToken);
+  const token = useAuthStore((state) => state.token);
 
-  useEffect(() => {
-    if (!user) {
-      setUser({ id: null, name: 'Guest User', email: 'guest@wastewise.local', city: 'Delhi' });
-      setToken(`wastewise_guest_${Date.now()}`);
-    }
-  }, [user, setUser, setToken]);
-
-  return children;
+  return user && token ? <Navigate to="/home" replace /> : <LandingPage />;
 }
 
 function App() {
@@ -60,27 +51,25 @@ function App() {
           },
         }}
       />
-      <GuestHandler>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/landing" element={<Navigate to="/" replace />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+      <Routes>
+        <Route path="/" element={<StartPage />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-          <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
-          <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-          <Route path="/scan" element={<ProtectedRoute><ScanPage /></ProtectedRoute>} />
-          <Route path="/processing" element={<ProtectedRoute><ProcessingPage /></ProtectedRoute>} />
-          <Route path="/results/:scanId" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
-          <Route path="/results/:scanId/suggestion/:suggestionId" element={<ProtectedRoute><SuggestionPage /></ProtectedRoute>} />
-          <Route path="/results/:scanId/ewaste" element={<ProtectedRoute><EwastePage /></ProtectedRoute>} />
-          <Route path="/log" element={<ProtectedRoute><LogPage /></ProtectedRoute>} />
-          <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+        <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+        <Route path="/scan" element={<ProtectedRoute><ScanPage /></ProtectedRoute>} />
+        <Route path="/processing" element={<ProtectedRoute><ProcessingPage /></ProtectedRoute>} />
+        <Route path="/results/:scanId" element={<ProtectedRoute><ResultsPage /></ProtectedRoute>} />
+        <Route path="/results/:scanId/suggestion/:suggestionId" element={<ProtectedRoute><SuggestionPage /></ProtectedRoute>} />
+        <Route path="/results/:scanId/ewaste" element={<ProtectedRoute><EwastePage /></ProtectedRoute>} />
+        <Route path="/log" element={<ProtectedRoute><LogPage /></ProtectedRoute>} />
+        <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </GuestHandler>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
       <Analytics />
       <SpeedInsights />
     </Router>
