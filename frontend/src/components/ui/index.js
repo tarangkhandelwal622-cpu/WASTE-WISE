@@ -11,3 +11,4 @@ export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as Navbar } from './Navbar';
 export { default as BottomNav } from './BottomNav';
 export { default as WeatherStrip } from './WeatherStrip';
+export { default as GridBackground } from './GridBackground';

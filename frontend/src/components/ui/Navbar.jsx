@@ -61,7 +61,7 @@ export default function Navbar() {
     .toUpperCase();
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-border-light bg-white/92 backdrop-blur-xl">
+    <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-border-light bg-white/75 backdrop-blur-xl">
       <div className="page-shell flex h-full items-center justify-between">
         <Link to={user ? '/home' : '/'}>
           <img src="/logo.png" alt="WasteWise" className="h-10 w-auto" />
@@ -92,7 +92,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={() => setProfileOpen((current) => !current)}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-white px-2 py-2 shadow-card"
+                className="flex items-center gap-3 rounded-2xl border border-border bg-white/80 backdrop-blur-md px-2 py-2 shadow-card"
               >
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-deep-purple text-sm font-extrabold text-white">
                   {initials}
@@ -101,7 +101,7 @@ export default function Navbar() {
                 <ChevronDown size={16} className="text-text-muted" />
               </button>
               {profileOpen && (
-                <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-border bg-white p-2 shadow-hover">
+                <div className="absolute right-0 mt-3 w-56 rounded-2xl border border-border bg-white/90 backdrop-blur-xl p-2 shadow-hover">
                   {[
                     { label: 'My Profile', path: '/profile' },
                     { label: 'Scrap Log', path: '/log' },
@@ -152,7 +152,7 @@ export default function Navbar() {
       </div>
 
       {menuOpen && (
-        <div className="border-b border-border-light bg-white px-4 py-4 shadow-card md:hidden">
+        <div className="border-b border-border-light bg-white/90 backdrop-blur-xl px-4 py-4 shadow-card md:hidden">
           <div className="mx-auto flex max-w-xl flex-col gap-2">
             {user ? (
               <>

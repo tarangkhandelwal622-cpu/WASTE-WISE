@@ -14,7 +14,7 @@ export default function BottomNav() {
   const location = useLocation();
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-border-light bg-white/95 backdrop-blur-xl">
+    <div className="fixed inset-x-0 bottom-0 z-40 h-16 border-t border-border-light bg-white/75 backdrop-blur-xl">
       <div className="mx-auto grid h-full max-w-4xl grid-cols-5">
         {tabs.map(({ icon: Icon, label, path }) => {
           const isActive = location.pathname === path || (path === '/scan' && location.pathname.startsWith('/results'));

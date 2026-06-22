@@ -4,22 +4,22 @@
   --primary-purple: #c8b6e2;
   --deep-purple: #9b72cf;
   --deep-purple-hover: #7b52af;
-  --light-purple: #f3eeff;
+  --light-purple: rgba(243, 238, 255, 0.85);
   --primary-green: #b8e6c1;
   --deep-green: #52b788;
   --deep-green-hover: #3a9b6a;
-  --light-green: #eefbf2;
-  --page-bg: #fafafa;
-  --card-bg: #ffffff;
+  --light-green: rgba(238, 251, 242, 0.85);
+  --page-bg: transparent;
+  --card-bg: rgba(255, 255, 255, 0.85);
   --text-primary: #1a1a2e;
   --text-secondary: #4a4a6a;
   --text-muted: #8a8aaa;
-  --border: #e8e0f0;
-  --border-light: #f0ecf8;
+  --border: rgba(232, 224, 240, 0.8);
+  --border-light: rgba(240, 236, 248, 0.8);
   --warning: #f4a261;
   --danger: #e76f51;
-  --shadow-card: 0 2px 12px rgba(155, 114, 207, 0.06);
-  --shadow-hover: 0 12px 34px rgba(155, 114, 207, 0.12);
+  --shadow-card: 0 4px 16px rgba(155, 114, 207, 0.1);
+  --shadow-hover: 0 12px 34px rgba(155, 114, 207, 0.2);
 }
 
 * {
@@ -138,6 +138,8 @@ p {
 
 .surface-card {
   background: var(--card-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--shadow-card);
@@ -260,7 +262,9 @@ p {
 }
 
 .input-field {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1.5px solid var(--border);
   border-radius: 10px;
   color: var(--text-primary);
@@ -353,7 +357,8 @@ p {
 
 .icon-button {
   align-items: center;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border);
   border-radius: 12px;
   color: var(--text-secondary);
@@ -372,7 +377,9 @@ p {
 }
 
 .choice-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1.5px solid var(--border);
   border-radius: 16px;
   color: var(--text-secondary);

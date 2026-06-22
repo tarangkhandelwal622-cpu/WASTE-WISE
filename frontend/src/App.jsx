@@ -22,6 +22,7 @@ import ProfilePage from './pages/ProfilePage';
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute';
+import { GridBackground } from './components/ui';
 
 function StartPage() {
   const user = useAuthStore((state) => state.user);
@@ -33,6 +34,7 @@ function StartPage() {
 function App() {
   return (
     <Router>
+      <GridBackground />
       <Toaster
         position="top-right"
         toastOptions={{

@@ -72,10 +72,10 @@ export default function LandingPage() {
   }, [location.state]);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <Navbar />
 
-      <section className="relative overflow-hidden bg-white pt-24 soft-grid">
+      <section className="relative overflow-hidden pt-24">
         <div className="absolute right-[-10%] top-16 h-80 w-80 rounded-full bg-light-purple blur-3xl" />
         <div className="absolute bottom-8 left-[-8%] h-80 w-80 rounded-full bg-light-green blur-3xl" />
 
@@ -165,7 +165,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="how-it-works" className="section bg-light-purple">
+      <section id="how-it-works" className="section">
         <div className="page-shell">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <h2>How WasteWise works</h2>
@@ -188,7 +188,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="section bg-white">
+      <section id="features" className="section">
         <div className="page-shell">
           <div className="mb-12 max-w-2xl">
             <Badge color="purple" className="mb-4">What we handle</Badge>
@@ -208,7 +208,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="section bg-light-green">
+      <section className="section">
         <div className="page-shell grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
           <div>
             <Badge color="green" className="mb-4">Rooted in Indian wisdom</Badge>
@@ -230,7 +230,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="community-proof" className="section bg-white">
+      <section id="community-proof" className="section">
         <div className="page-shell">
           <div className="grid gap-5 text-center sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -260,32 +260,32 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer className="bg-[#1A1A2E] py-12 text-white">
+      <footer className="py-12 bg-white/80 backdrop-blur-md">
         <div className="page-shell grid gap-8 md:grid-cols-3">
           <div>
-            <h4 className="text-white">About WasteWise</h4>
-            <p className="mt-3 text-sm leading-7 text-white/65">
+            <h4 className="text-text-primary">About WasteWise</h4>
+            <p className="mt-3 text-sm leading-7 text-text-secondary">
               A zero waste companion for Indian homes, built around safety, context, and practical reuse.
             </p>
           </div>
           <div>
-            <h4 className="text-white">Quick links</h4>
-            <div className="mt-3 grid gap-2 text-sm font-bold text-white/65">
-              <button type="button" className="w-fit hover:text-white" onClick={() => scrollTo(0, 0)}>Home</button>
-              <button type="button" className="w-fit hover:text-white" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
+            <h4 className="text-text-primary">Quick links</h4>
+            <div className="mt-3 grid gap-2 text-sm font-bold text-text-secondary">
+              <button type="button" className="w-fit hover:text-deep-purple" onClick={() => scrollTo(0, 0)}>Home</button>
+              <button type="button" className="w-fit hover:text-deep-purple" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
                 How it works
               </button>
-              <button type="button" className="w-fit hover:text-white" onClick={() => navigate(primaryTarget)}>Get started</button>
+              <button type="button" className="w-fit hover:text-deep-purple" onClick={() => navigate(primaryTarget)}>Get started</button>
             </div>
           </div>
           <div>
-            <h4 className="text-white">Contact</h4>
-            <p className="mt-3 text-sm leading-7 text-white/65">
+            <h4 className="text-text-primary">Contact</h4>
+            <p className="mt-3 text-sm leading-7 text-text-secondary">
               Built for everyday households that want practical, safe, and culturally aware reuse.
             </p>
           </div>
         </div>
-        <div className="page-shell mt-10 border-t border-white/10 pt-6 text-sm text-white/55">
+        <div className="page-shell mt-10 border-t border-border pt-6 text-sm text-text-muted">
           Copyright WasteWise 2024. Nothing goes to waste. Everything gets wise.
         </div>
       </footer>
