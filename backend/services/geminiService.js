@@ -11,17 +11,35 @@ const analyzeProductImage = async (imageBase64, mimeType) => {
   }
 
   const prompt = `You are an expert computer vision model. Analyse this product image in high detail and extract the following information. Be as precise as possible. Read all visible text.
+
+CRITICAL CLASSIFICATION RULES — follow these strictly:
+- If the image shows an EXPIRED or CONSUMABLE product (food, dairy, cosmetics, medicine, oil, spice, beverage) inside packaging → category is about the PRODUCT, not the packaging. detected_category = "expired_product".
+- If the image shows an EMPTY container/bottle/carton/wrapper with NO product inside → detected_category = "waste_packaging".
+- If the image shows fruit/vegetable peels, scraps, cores, rinds, or food leftovers → detected_category = "food_peels".
+- If the image shows an electronic device (phone, laptop, cable, appliance, charger, tablet, monitor) → detected_category = "electronics".
+- If the image shows something that does NOT fit any of the above (stationery, pen, toy, clothing, furniture, tools, books, bags, shoes) → detected_category = "other".
+
+IMPORTANT — Product vs Packaging separation:
+- "item_name" must be the PRIMARY PRODUCT (e.g. "moisturiser", "coconut oil", "curd"), NOT the packaging.
+- "primary_material" is the material of the product itself (e.g. "cream", "liquid oil", "dairy").
+- "packaging_material" is the material of the container/wrapper (e.g. "plastic bottle", "glass jar", "cardboard box").
+- For items in the "other" category, "primary_material" is the main material of the item (e.g. "plastic", "wood", "metal").
+
 Return a JSON object strictly matching this schema:
 {
-  "product_name": "Exact name of the product or item",
+  "product_name": "Exact name of the primary product or item (NOT the packaging)",
   "brand": "Brand name if visible, else null",
-  "category": "Choose the best fit: dairy/oils/grains/fruits_veg/spices/cosmetics/beverages/packaged_food/household/electronics/packaging/peels/unknown",
+  "category": "Choose the best fit: dairy/oils/grains/fruits_veg/spices/cosmetics/beverages/packaged_food/household/electronics/packaging/peels/stationery/clothing/furniture/toys/unknown",
+  "primary_material": "Material of the product itself (e.g. cream, liquid, grain, plastic, wood, metal, fabric)",
+  "packaging_material": "Material of the packaging/container: glass/plastic/cardboard/metal/fabric/mixed/none",
   "ingredients": ["list", "of", "ingredients", "exactly", "as", "written", "on", "label"],
   "expiry_date": "Identify any dates. Return the expiry date in YYYY-MM-DD format, or null if not found.",
   "expiry_type": "Classify the date as: best_before, use_by, expiry_date, or unknown",
   "quantity": "Extract net weight, volume, or count (e.g. '500g', '1L', '2 pieces')",
   "risk_indicators": ["List any visible mould", "discolouration", "damage", "spoilage", "rust"],
-  "packaging_material": "Identify main material: glass/plastic/cardboard/metal/fabric/mixed"
+  "key_components": ["List the distinct physical components of the item, e.g. for a pen: cap, barrel, ink cartridge, tip"],
+  "detected_category": "One of: expired_product, food_peels, waste_packaging, electronics, other",
+  "confidence_score": "Integer 0-100 indicating how confident you are in the detected_category classification"
 }
 
 Return ONLY the JSON object. No markdown, no explanation. Ensure it is valid JSON.`;

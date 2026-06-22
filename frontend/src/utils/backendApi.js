@@ -143,6 +143,23 @@ export const buildScanPayload = (scanType, form, profile = {}, photoFile = null)
       hasResidue: Boolean(form.hasResidue),
       size: form.size || '',
     };
+  } else if (scanType === 'other') {
+    specificPayload = {
+      ...base,
+      product_name: form.itemName || 'Item',
+      category: 'other',
+      other_info: {
+        materials: form.materials || [],
+        condition: form.condition || '',
+        age: form.age || '',
+        size: form.size || '',
+        originalPurpose: form.originalPurpose || '',
+        disposingReasons: form.disposingReasons || [],
+      },
+      materials: form.materials || [],
+      condition: form.condition || '',
+      notes: form.notes || '',
+    };
   } else {
     const ingredients = (form.ingredients || '')
       .split(/\n|,|;/)

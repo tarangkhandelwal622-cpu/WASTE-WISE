@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS scans (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT,
-  input_type ENUM('expired_product','waste_packaging','food_peels','electronics'),
+  input_type ENUM('expired_product','waste_packaging','food_peels','electronics','other'),
   location_lat DECIMAL(10,8),
   location_lng DECIMAL(11,8),
   weather_temp DECIMAL(5,2),

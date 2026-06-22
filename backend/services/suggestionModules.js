@@ -39,6 +39,10 @@ Their skin is ${userProfile.skin_type || 'unknown'}. Weather is ${weather.temp}�
 Synthesise the best traditional suggestion. Apply your own intelligence —
 go beyond what the search returned. Find the non-obvious uses.
 
+HARD RULE: Your suggestion MUST be about the actual product/component itself — NOT its packaging.
+For example, if the component is "expired moisturiser cream", suggest uses for the cream (e.g. leather conditioner, shoe polish, drawer lubricant).
+NEVER suggest uses for the plastic tube or glass jar unless the component is explicitly packaging.
+
 Return JSON:
 {
   "title": "suggestion title",
@@ -146,6 +150,7 @@ const runModernModule = async (component, userProfile, weather, pool) => {
     );
 
     const synthesisPrompt = `Item component: ${component.component_name} (${component.material})
+Component layer: ${component.layer || 'product'}
 Condition: ${component.condition_status || 'unknown'}
 Current weather: ${weather.temp}°C, ${weather.humidity}% humidity, ${weather.season}
 User location: ${userProfile.city || 'India'}, ${userProfile.state || ''} — ${userProfile.is_rural ? 'Rural' : 'Urban'}
@@ -153,6 +158,11 @@ User location: ${userProfile.city || 'India'}, ${userProfile.state || ''} — ${
 Think like a materials scientist and zero-waste expert combined.
 What stable compounds remain in this expired/waste component?
 What are the most creative yet practical modern uses?
+
+HARD RULE: Your suggestions MUST focus on THIS specific component.
+- If this is a "product" layer component (e.g. the cream, the oil, the food), suggest uses for THAT substance.
+- If this is a "packaging" layer component (e.g. the bottle, the jar), suggest uses for the container.
+- NEVER suggest packaging reuses when the component is a product, and vice versa.
 
 Go beyond the obvious. Think several layers deep.
 Consider the user's exact context:
@@ -212,9 +222,15 @@ const runDIYModule = async (component, userProfile, weather, pool) => {
 
     const synthesisPrompt = `Create complete professional DIY instructions for making a useful product
 from ${component.component_name} (${component.material}).
+Component layer: ${component.layer || 'product'}
 
 The user is in ${userProfile.city || 'India'}, ${userProfile.state || ''}, weather is ${weather.temp}°C ${weather.season}.
 Their available tools assumption: basic home kitchen tools only.
+
+HARD RULE: Your DIY project MUST use THIS specific component as its primary material.
+- If this is a "product" layer component (e.g. expired cream, old oil), the DIY must repurpose that substance.
+- If this is a "packaging" layer component (e.g. plastic bottle, glass jar), the DIY must repurpose the container.
+- NEVER create a DIY for the container when the component is the product inside it.
 
 Return detailed JSON:
 {

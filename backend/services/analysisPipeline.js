@@ -153,6 +153,47 @@ const runAnalysisPipeline = async (req, pool) => {
         { component_name: 'battery', component_type: 'electronic', material: 'lithium-ion', condition: 'fair', estimated_percentage: 10 },
         { component_name: 'screen/display', component_type: 'electronic', material: 'LCD/LED', condition: device_info.condition || 'fair', estimated_percentage: 20 },
       ];
+    } else if (input_type === 'other') {
+      // Handle "Other" category items using manually entered form data
+      const other_info = safeParse(req.body.other_info);
+      const otherMaterials = other_info?.materials || req.body.materials || [];
+      const matList = Array.isArray(otherMaterials) ? otherMaterials : [otherMaterials];
+
+      if (matList.length > 0 && matList[0]) {
+        // Build components from the user-specified materials
+        components = matList.map((mat) => ({
+          component_name: `${finalProductName} (${mat})`,
+          component_type: 'other',
+          material: mat,
+          condition: other_info?.condition || req.body.condition || 'fair',
+          estimated_percentage: Math.round(100 / matList.length),
+        }));
+      } else {
+        // No materials specified — fall through to AI decomposition
+        let decomposed = null;
+        try {
+          const timeoutPromise = new Promise((resolve) => {
+            setTimeout(() => {
+              console.log('[AnalysisPipeline] AI decomposition timeout for other item, using fast-track');
+              resolve(null);
+            }, 6000);
+          });
+
+          decomposed = await Promise.race([
+            decomposeComponents(finalProductName, finalCategory),
+            timeoutPromise
+          ]);
+
+          if (!decomposed || !Array.isArray(decomposed)) {
+            console.log('[AnalysisPipeline] Using fast-track decomposition for other item');
+            decomposed = fastDecompose(finalProductName, finalCategory);
+          }
+        } catch (error) {
+          console.error('Decomposition error (other):', error.message);
+          decomposed = fastDecompose(finalProductName, finalCategory);
+        }
+        components = decomposed;
+      }
     } else {
       // Race AI decomposition against timeout
       let decomposed = null;

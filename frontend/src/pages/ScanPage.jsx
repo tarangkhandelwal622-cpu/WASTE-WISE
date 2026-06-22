@@ -10,6 +10,7 @@ import {
   Recycle,
   ShieldCheck,
   Upload,
+  HelpCircle,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AppLayout from '../components/AppLayout';
@@ -40,6 +41,12 @@ const scanTypes = [
     text: 'Phones, laptops, cables, appliances, screens, chargers.',
     icon: CircuitBoard,
   },
+  {
+    id: 'other',
+    title: 'Other',
+    text: 'Stationery, toys, clothing, furniture, tools, or anything else that doesn\'t fit above.',
+    icon: HelpCircle,
+  },
 ];
 
 const options = {
@@ -47,6 +54,8 @@ const options = {
   food_peels: ['Banana peel', 'Potato peel', 'Mango peel', 'Apple peel', 'Watermelon rind', 'Coconut shell', 'Mixed scraps', 'Other'],
   waste_packaging: ['Glass', 'Plastic', 'Cardboard', 'Metal', 'Fabric', 'Paper', 'Mixed material'],
   electronics: ['Mobile phone', 'Laptop', 'Tablet', 'TV or monitor', 'Kitchen appliance', 'Cable or charger', 'Audio device', 'Other'],
+  other_materials: ['Plastic', 'Metal', 'Wood', 'Glass', 'Fabric', 'Rubber', 'Paper', 'Ceramic', 'Mixed materials', 'Not sure'],
+  other_disposing: ['Broken', 'Upgraded to newer version', 'No longer needed', 'Moving home', 'Gifted or wrong item', 'Other reason'],
 };
 
 const initialForm = {
@@ -64,6 +73,9 @@ const initialForm = {
   brand: '',
   age: '',
   issue: '',
+  materials: [],
+  disposingReasons: [],
+  originalPurpose: '',
 };
 
 const mapCategoryToOption = (type, data) => {
@@ -207,19 +219,25 @@ export default function ScanPage() {
       
       toast.success('Category detected!', { id: toastId });
       
-      let detectedScanType = 'expired_product';
-      const categoryLower = (data.category || '').toLowerCase();
-      if (categoryLower.includes('peel') || categoryLower === 'peels' || categoryLower.includes('scrap')) {
-        detectedScanType = 'food_peels';
-      } else if (categoryLower.includes('packaging') || ['glass', 'plastic', 'cardboard', 'metal', 'fabric', 'paper', 'mixed material'].includes(data.packaging_material?.toLowerCase() || '')) {
-        detectedScanType = 'waste_packaging';
-      } else if (categoryLower.includes('electronic') || categoryLower.includes('phone') || categoryLower.includes('laptop') || categoryLower.includes('tv') || categoryLower.includes('appliance')) {
-        detectedScanType = 'electronics';
+      let detectedScanType = 'other';
+      if (data.detected_category) {
+        detectedScanType = data.detected_category;
+      } else {
+        const categoryLower = (data.category || '').toLowerCase();
+        if (categoryLower.includes('peel') || categoryLower === 'peels' || categoryLower.includes('scrap')) {
+          detectedScanType = 'food_peels';
+        } else if (categoryLower.includes('packaging') || ['glass', 'plastic', 'cardboard', 'metal', 'fabric', 'paper', 'mixed material'].includes(data.packaging_material?.toLowerCase() || '')) {
+          detectedScanType = 'waste_packaging';
+        } else if (categoryLower.includes('electronic') || categoryLower.includes('phone') || categoryLower.includes('laptop') || categoryLower.includes('tv') || categoryLower.includes('appliance')) {
+          detectedScanType = 'electronics';
+        } else if (categoryLower.includes('expired')) {
+          detectedScanType = 'expired_product';
+        }
       }
 
       setScanType(detectedScanType);
       
-      setForm({
+      const newForm = {
         ...initialForm,
         itemName: data.product_name || (data.brand ? `${data.brand} ${data.product_name || ''}`.trim() : ''),
         brand: data.brand || '',
@@ -230,11 +248,22 @@ export default function ScanPage() {
         condition: mapConditionToOption(detectedScanType, data.risk_indicators || []),
         quantity: data.quantity || '',
         notes: data.risk_indicators?.length ? `Detected concerns: ${data.risk_indicators.join(', ')}` : '',
-      });
+      };
+      
+      // Map components to materials for 'other'
+      if (detectedScanType === 'other' && data.key_components) {
+         newForm.materials = Array.isArray(data.key_components) ? data.key_components : [data.key_components];
+      }
+      
+      setForm(newForm);
+
+      if (data.confidence_score !== undefined && data.confidence_score < 80) {
+        toast('Please review the selected category and details. AI confidence was low.', { icon: '⚠️', duration: 4000 });
+      }
     } catch (err) {
       console.error(err);
       toast.error(err.message || 'AI analysis failed.');
-      setScanType('expired_product');
+      setScanType('other');
     } finally {
       setVisionLoading(false);
     }
@@ -430,6 +459,7 @@ export default function ScanPage() {
             {scanType === 'food_peels' && <FoodPeelFields form={form} update={update} />}
             {scanType === 'waste_packaging' && <PackagingFields form={form} update={update} />}
             {scanType === 'electronics' && <ElectronicsFields form={form} update={update} />}
+            {scanType === 'other' && <OtherFields form={form} update={update} />}
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
               <Button variant="secondary" onClick={() => setScanType('')}>Change type</Button>
@@ -535,6 +565,69 @@ function TextArea({ label, value, onChange, placeholder }) {
     <div>
       <label className="input-label">{label}</label>
       <textarea className="input-field min-h-[110px] resize-y" value={value} onChange={onChange} placeholder={placeholder} />
+    </div>
+  );
+}
+
+function MultiSelectChips({ label, options, selected, onChange }) {
+  const toggle = (opt) => {
+    if (selected.includes(opt)) {
+      onChange(selected.filter((item) => item !== opt));
+    } else {
+      onChange([...selected, opt]);
+    }
+  };
+
+  return (
+    <div>
+      <label className="input-label mb-2 block">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+              selected.includes(opt)
+                ? 'bg-deep-purple text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OtherFields({ form, update }) {
+  return (
+    <div className="grid gap-5">
+      <Input label="Item name *" placeholder="Example: Ballpoint pen, wooden chair, plastic toy" value={form.itemName} onChange={(e) => update('itemName', e.target.value)} required />
+      
+      <MultiSelectChips 
+        label="Item material (select one or more)" 
+        options={options.other_materials} 
+        selected={form.materials} 
+        onChange={(val) => update('materials', val)} 
+      />
+      
+      <div className="grid gap-5 md:grid-cols-2">
+        <SelectField label="Item condition" value={form.condition} onChange={(value) => update('condition', value)} options={['Working but unwanted', 'Broken or damaged', 'Partially functional', 'Completely non-functional']} />
+        <SelectField label="Approximate age" value={form.age} onChange={(value) => update('age', value)} options={['Less than 1 year', '1 to 3 years', '3 to 5 years', 'More than 5 years']} />
+      </div>
+      
+      <SelectField label="Size" value={form.size} onChange={(value) => update('size', value)} options={['Small (fits in a hand)', 'Medium (fits in a bag)', 'Large (furniture or appliance sized)']} />
+      
+      <Input label="Original purpose (optional)" placeholder="What was this item originally used for?" value={form.originalPurpose} onChange={(e) => update('originalPurpose', e.target.value)} />
+      
+      <MultiSelectChips 
+        label="Why are you disposing? (optional)" 
+        options={options.other_disposing} 
+        selected={form.disposingReasons} 
+        onChange={(val) => update('disposingReasons', val)} 
+      />
     </div>
   );
 }

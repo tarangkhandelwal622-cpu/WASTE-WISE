@@ -52,19 +52,31 @@ const chat = async (messages, maxTokens = 4096, temperature = 0.4, model = null)
 const decomposeComponents = async (productName, description) => {
   const prompt = `You are analysing ${productName} which is ${description}.
 This item has expired/is waste. Decompose it into ALL its physical components.
+
+CRITICAL — TWO-LAYER DECOMPOSITION:
+Layer 1 (PRODUCT): The actual product itself. This MUST come first in the array.
+  Examples: the cream inside the tube, the oil in the bottle, the food in the packet, the pen ink, the wood of a chair.
+Layer 2 (PACKAGING): The container, wrapper, or structural housing. This MUST come after all product components.
+  Examples: the plastic bottle, the cardboard box, the glass jar, the foil wrapper.
+
+For non-packaged items (e.g. a pen, a wooden chair, a toy), decompose into the item's own physical parts.
+  Examples for a pen: ink cartridge, plastic barrel, metal clip, plastic cap.
+  Examples for a wooden chair: seat (wood), legs (wood), screws (metal), varnish coating.
+
 Think carefully — a rotten apple has: flesh, peel, seeds, core.
-An expired milk carton has: cardboard body, plastic lining, foil layer, cap.
+An expired milk carton has: milk (product), cardboard body, plastic lining, foil layer, cap.
 A broken phone has: screen, battery, camera module, speakers, frame, cables.
 
 CRITICAL INSTRUCTION: Do not suggest uses that require chemically separating ingredients. Only suggest what a normal household person can physically do with this product as-is. Think in terms of the minimum physical unit — for example an expired bottle of coconut oil is one physical unit that can be used as wood polish, leather conditioner, or hair oil. An expired lemon can be split into juice, peel, and seed — these are natural physical separations. A bottle of shampoo cannot be separated into its chemical components. Always suggest at least one primary whole-product use and at least two secondary uses based on natural physical parts if applicable.
 
-Return a JSON array of components:
+Return a JSON array of components. PRODUCT components MUST appear before PACKAGING components:
 [{
   "component_name": "name",
-  "component_type": "food/packaging/electronic/organic/chemical",
+  "component_type": "food/packaging/electronic/organic/chemical/other",
   "material": "specific material",
   "condition": "good/fair/degraded/contaminated",
-  "estimated_percentage": "percentage of whole item this component represents"
+  "estimated_percentage": "percentage of whole item this component represents",
+  "layer": "product or packaging"
 }]
 Be thorough. Nothing should be left unaccounted for. Think at least 3 layers deep.
 A rotten apple seed is not waste — it can grow a plant. Find every highest use.
